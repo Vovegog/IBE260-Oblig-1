@@ -193,3 +193,6 @@ app.post('/bid', async (req: Request, res: Response) => {
 app.listen(80, () => {
     console.log('Server started. Fuck you.');
 });
+
+/* I MAY want to change all the console.log()'s over to res.status().send's instead?
+Not sure what the difference is tbh. Will have to look it up */
