@@ -175,7 +175,7 @@ app.post('/bid', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 console.log(`Game is now in round number ${round}`);
             }
         }
-        else if (req.body.bid <= 0) { // If player bids a 0 or less than current bid (which is impossible)
+        else if (req.body.bid <= 0) { // If player bids a 0 or less than 0 (which is impossible)
             res.status(400).send(`You cannot bid 0 or less than the current bid, ${turn}`);
             return;
         }
