@@ -27,6 +27,10 @@ let players: [string, string[]][] = [
     ['Kai Åge', []]
 ];
 
+// Make player 1 and 3 a team, and player 2 and 4 a team
+let team1: string[] = [players[0][0], players[2][0]];
+let team2: string[] = [players[1][0], players[3][0]];
+
 // Initiate variable "deck"
 let deck: string[] = [];
 
@@ -78,7 +82,6 @@ app.post('/start', (req: Request, res: Response) => {
 // RESTful POST to restart the game
 app.post('/restart', (req: Request, res: Response) => {
     try {
-        gameRunning = false;
         players = [
             ['Trond', []],
             ['Kari', []],
@@ -98,6 +101,19 @@ app.get('/players', (req: Request, res: Response) => {
     try {
         if (gameRunning) {
             res.status(200).json(players);
+        } else {
+            res.status(400).send('Game not running');
+        }
+    } catch (error) {
+        errorHandler(error);
+    }
+});
+
+// Let the players check the teams
+app.get('/teams', (req: Request, res: Response) => {
+    try {
+        if (gameRunning) {
+            res.status(200).json([team1, team2]);
         } else {
             res.status(400).send('Game not running');
         }
