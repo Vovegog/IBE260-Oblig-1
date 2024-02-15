@@ -34,6 +34,19 @@ let team2: string[] = [players[1][0], players[3][0]];
 // Initiate variable "deck"
 let deck: string[] = [];
 
+// Declare a variable for bidding
+let bidding: number = 0;
+let whoBid: string = '';
+
+// Variable for storing passes in a row. 3 PASSES IN A ROW ENDS THE ROUND!!!
+let passes: number = 0;
+
+// Declare a variable for the round
+let round: number = 1;
+
+// Need to keep track of which players turn it is
+let turn: string = players[0][0];
+
 // Create a deck and shuffle it
 function createDeck() {
     try {
@@ -73,6 +86,7 @@ app.post('/start', (req: Request, res: Response) => {
             gameRunning = true;
             createDeck();
             res.status(200).send('Game started');
+            console.log(`It is now ${turn}'s turn to bid`);
         }
     } catch (error) {
         errorHandler(error);
@@ -80,7 +94,7 @@ app.post('/start', (req: Request, res: Response) => {
 });
 
 // RESTful POST to restart the game
-app.post('/restart', (req: Request, res: Response) => {
+app.post('/restart', async (req: Request, res: Response) => {
     try {
         players = [
             ['Trond', []],
@@ -89,7 +103,13 @@ app.post('/restart', (req: Request, res: Response) => {
             ['Kai Åge', []]
         ];
         createDeck();
+        // Reset the game variables
+        round = 0;
+        turn = players[0][0];
+        bidding = 0;
+        passes = 0;
         res.status(200).send('Game restarted');
+        console.log(`It is now ${turn}'s turn to bid`);
     } catch (error) {
         errorHandler(error);
     }
@@ -97,10 +117,11 @@ app.post('/restart', (req: Request, res: Response) => {
 
 
 // RESTful GET to get the players and their hands
-app.get('/players', (req: Request, res: Response) => {
+app.get('/players', async (req: Request, res: Response) => {
     try {
         if (gameRunning) {
             res.status(200).json(players);
+            console.log(`It is currently ${turn}'s turn to bid`);
         } else {
             res.status(400).send('Game not running');
         }
@@ -110,7 +131,7 @@ app.get('/players', (req: Request, res: Response) => {
 });
 
 // Let the players check the teams
-app.get('/teams', (req: Request, res: Response) => {
+app.get('/teams', async (req: Request, res: Response) => {
     try {
         if (gameRunning) {
             res.status(200).json([team1, team2]);
@@ -122,7 +143,52 @@ app.get('/teams', (req: Request, res: Response) => {
     }
 });
 
+// RESTful POST to make a bid
+app.post('/bid', async (req: Request, res: Response) => {
+    // Check if player is allowed to bid
+    if (req.body.player !== turn) {
+        res.status(400).send(`It is not your turn to bid. It is ${turn}'s turn to bid`);
+        console.log(`It is not ${req.body.player}'s turn to bid, it is ${turn}'s turn to bid`)
+        return;
+    } else { 
+        // If player bids "pass"
+        if (req.body.bid === "PASS") {
+            passes++;
+            // Console out that the player passed, and who's next up to bid
+            console.log(`${turn} passed. It is now ${players[(players.findIndex(player => player[0] === turn) + 1) % 4][0]}'s turn to bid`);
+            // Pass the turn to the next player
+            turn = players[(players.findIndex(player => player[0] === turn) + 1) % 4][0];
+            // If passes is 3, the round is over
+            if (passes === 3) {
+                console.log(`Round ${round} is over`);
+                round++;
+                // Reset passes to 0 for next round
+                passes = 0;
+                // Reset the bidding to 0 for next round
+                bidding = 0;
+                // Reset the turn to player 1 for next round
+                turn = players[0][0];
+                // Reset the players hands for next round *NOT WORKING YET*
+                console.log(`Game is now in round number ${round}`);
+            }
+        } else if (req.body.bid === "0") { // If player bids a 0 (which is impossible)
+            res.status(400).send(`You cannot bid 0, ${turn}`);
+            return;
+        } else if (req.body.bid < bidding) { // If player bids lower than the current bid (which is impossible)
+            res.status(400).send(`You cannot bid lower than the current bid, ${turn}`);
+            return;
+        } else { // If player bids a number higher than the current bid
+            bidding = req.body.bid;
+            whoBid = turn;
+            passes = 0;
+            // Pass the turn to the next player
+            turn = players[(players.findIndex(player => player[0] === turn) + 1) % 4][0];
+            // Console out which players turn is next, as well as the current bid
+            console.log(`The current bid is ${bidding} by ${whoBid}. It is now ${turn}'s turn to bid`);
+        }
+    } 
+});
 
-app.listen(8080, () => {
+app.listen(80, () => {
     console.log('Server started. Fuck you.');
 });

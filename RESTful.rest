@@ -1,0 +1,53 @@
+POST http://localhost:80/start
+
+###
+
+POST http://localhost:80/restart
+
+###
+
+GET http://localhost:80/players
+
+###
+
+GET http://localhost:80/teams
+
+###
+
+POST http://localhost:80/bid
+Content-Type: application/json
+
+{
+  "player": "Trond",
+  "bid": "PASS"
+}
+
+###
+
+POST http://localhost:80/bid
+Content-Type: application/json
+
+{
+  "player": "Kari",
+  "bid": 7
+}
+
+###
+
+POST http://localhost:80/bid
+Content-Type: application/json
+
+{
+  "player": "Per",
+  "bid": "PASS"
+}
+
+###
+
+POST http://localhost:80/bid
+Content-Type: application/json
+
+{
+  "player": "Kai Åge",
+  "bid": "PASS"
+}
