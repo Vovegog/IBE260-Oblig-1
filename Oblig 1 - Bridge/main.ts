@@ -171,8 +171,8 @@ app.post('/bid', async (req: Request, res: Response) => {
                 // Reset the players hands for next round *NOT WORKING YET*
                 console.log(`Game is now in round number ${round}`);
             }
-        } else if (req.body.bid === "0") { // If player bids a 0 (which is impossible)
-            res.status(400).send(`You cannot bid 0, ${turn}`);
+        } else if (req.body.bid <= 0 ) { // If player bids a 0 or less than current bid (which is impossible)
+            res.status(400).send(`You cannot bid 0 or less than the current bid, ${turn}`);
             return;
         } else if (req.body.bid < bidding) { // If player bids lower than the current bid (which is impossible)
             res.status(400).send(`You cannot bid lower than the current bid, ${turn}`);
