@@ -38,6 +38,7 @@ let players = [
 // Make player 1 and 3 a team, and player 2 and 4 a team
 let team1 = [players[0][0], players[2][0]];
 let team2 = [players[1][0], players[3][0]];
+/* Can theoretically add a 3rd index representing a numerical score for the team */
 // Initiate variable "deck"
 let deck = [];
 // Declare a variable for bidding
