@@ -147,47 +147,51 @@ app.get('/teams', async (req: Request, res: Response) => {
 // RESTful POST to make a bid
 app.post('/bid', async (req: Request, res: Response) => {
     // Check if player is allowed to bid
-    if (req.body.player !== turn) {
-        res.status(400).send(`It is not your turn to bid. It is ${turn}'s turn to bid`);
-        console.log(`It is not ${req.body.player}'s turn to bid, it is ${turn}'s turn to bid`)
-        return;
-    } else { 
-        // If player bids "pass"
-        if (req.body.bid === "PASS") {
-            passes++;
-            // Console out that the player passed, and who's next up to bid
-            console.log(`${turn} passed. It is now ${players[(players.findIndex(player => player[0] === turn) + 1) % 4][0]}'s turn to bid`);
-            // Pass the turn to the next player
-            turn = players[(players.findIndex(player => player[0] === turn) + 1) % 4][0];
-            // If passes is 3, the round is over
-            if (passes === 3) {
-                console.log(`Round ${round} is over`);
-                round++;
-                // Reset passes to 0 for next round
+    try {
+        if (req.body.player !== turn) {
+            res.status(400).send(`It is not your turn to bid. It is ${turn}'s turn to bid`);
+            console.log(`It is not ${req.body.player}'s turn to bid, it is ${turn}'s turn to bid`)
+            return;
+        } else { 
+            // If player bids "pass"
+            if (req.body.bid === "PASS") {
+                passes++;
+                // Console out that the player passed, and who's next up to bid
+                console.log(`${turn} passed. It is now ${players[(players.findIndex(player => player[0] === turn) + 1) % 4][0]}'s turn to bid`);
+                // Pass the turn to the next player
+                turn = players[(players.findIndex(player => player[0] === turn) + 1) % 4][0];
+                // If passes is 3, the round is over
+                if (passes === 3) {
+                    console.log(`Round ${round} is over`);
+                    round++;
+                    // Reset passes to 0 for next round
+                    passes = 0;
+                    // Reset the bidding to 0 for next round
+                    bidding = 0;
+                    // Reset the turn to player 1 for next round
+                    turn = players[0][0];
+                    // Reset the players hands for next round *NOT WORKING YET*
+                    console.log(`Game is now in round number ${round}`);
+                }
+            } else if (req.body.bid <= 0 ) { // If player bids a 0 or less than 0 (which is impossible)
+                res.status(400).send(`You cannot bid 0 or less than the current bid, ${turn}`);
+                return;
+            } else if (req.body.bid < bidding) { // If player bids lower than the current bid (which is impossible)
+                res.status(400).send(`You cannot bid lower than the current bid, ${turn}`);
+                return;
+            } else { // If player bids a number higher than the current bid
+                bidding = req.body.bid;
+                whoBid = turn;
                 passes = 0;
-                // Reset the bidding to 0 for next round
-                bidding = 0;
-                // Reset the turn to player 1 for next round
-                turn = players[0][0];
-                // Reset the players hands for next round *NOT WORKING YET*
-                console.log(`Game is now in round number ${round}`);
+                // Pass the turn to the next player
+                turn = players[(players.findIndex(player => player[0] === turn) + 1) % 4][0];
+                // Console out which players turn is next, as well as the current bid
+                console.log(`The current bid is ${bidding} by ${whoBid}. It is now ${turn}'s turn to bid`);
             }
-        } else if (req.body.bid <= 0 ) { // If player bids a 0 or less than 0 (which is impossible)
-            res.status(400).send(`You cannot bid 0 or less than the current bid, ${turn}`);
-            return;
-        } else if (req.body.bid < bidding) { // If player bids lower than the current bid (which is impossible)
-            res.status(400).send(`You cannot bid lower than the current bid, ${turn}`);
-            return;
-        } else { // If player bids a number higher than the current bid
-            bidding = req.body.bid;
-            whoBid = turn;
-            passes = 0;
-            // Pass the turn to the next player
-            turn = players[(players.findIndex(player => player[0] === turn) + 1) % 4][0];
-            // Console out which players turn is next, as well as the current bid
-            console.log(`The current bid is ${bidding} by ${whoBid}. It is now ${turn}'s turn to bid`);
-        }
-    } 
+        } 
+    } catch (error) {
+        errorHandler(error);
+    }
 });
 
 app.listen(80, () => {
