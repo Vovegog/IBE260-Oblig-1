@@ -59,6 +59,7 @@ app.post('/addplayer', async (req: Request, res: Response) => {
 let deck: string[] = [];
 
 // Declare variables for bidding and who put the bid
+// THIS NEEDS TO BE CHANGED TO ALLOW RANKS AND NUMBERS THAT TRUMP EACH OTHER!!!
 let bidding: number = 0;
 let whoBid: string = '';
 
