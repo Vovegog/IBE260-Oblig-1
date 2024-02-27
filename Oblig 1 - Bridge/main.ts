@@ -42,13 +42,13 @@ class Player {
 app.post('/addplayer', async (req: Request, res: Response) => {
     try {
         if (gameRunning) {
-            res.status(400).send('Game already running');
+            res.status(400).json({ message: 'Game already running' });
         } else if (players.length < 4) {
             let player = new Player(req.body.name);
             players.push([player.name, []]);
-            res.status(200).send(`${player.name} added to the game`);
+            res.status(200).json({ message: `${player.name} added to the game` });
         } else {
-            res.status(400).send('Game already has 4 players');
+            res.status(400).json({ message: 'Game already has 4 players' });
         }
     } catch (error) {
         errorHandler(error);
@@ -111,7 +111,7 @@ function createDeck() {
 app.post('/start', (req: Request, res: Response) => {
     try {
         if (gameRunning) {
-            res.status(400).send('Game already running');
+            res.status(400).json({ message: 'Game already running' });
         } else if (players.length == 4) {
             gameRunning = true;
             createDeck();
@@ -119,10 +119,10 @@ app.post('/start', (req: Request, res: Response) => {
             setTurn();
             /* Res.status sends out the message to display in the client, whose turn it is
             and the players hands to be displayed in the client, when we get to that in assignment 2 */
-            res.status(200).json( { message: `Game started. It is now ${turn}'s turn to bid`, turn: turn, players: players } );
+            res.status(200).json({ message: `Game started. It is now ${turn}'s turn to bid`, turn: turn, players: players });
             // console.log(`It is now ${turn}'s turn to bid`); // Debugging
         } else {
-            res.status(400).send('Game needs 4 players to start');
+            res.status(400).json({ message: 'Game needs 4 players to start' });
         }
     } catch (error) {
         errorHandler(error);
@@ -142,23 +142,24 @@ app.post('/restart', async (req: Request, res: Response) => {
             whoBid = '';
             passes = 0;
             round = 1;
-            res.status(200).send('Game restarted. Start adding new players to start a new game');
+            res.status(200).json({ message: 'Game restarted. Start adding new players to start a new game' });
         } else {
-            res.status(400).send('Game not running');
+            res.status(400).json({ message: 'Game not running' });
         }
     } catch (error) {
         errorHandler(error);
-}});
+    }
+});
 
 
 // RESTful GET to get the players and their hands. Mostly for debugging purposes, but could be used for the players to see their hands
 app.get('/players', async (req: Request, res: Response) => {
     try {
         if (gameRunning) {
-            res.status(200).json( { message: `Game is running. It is currently ${turn}'s turn to bid`, players: players } );
+            res.status(200).json({ message: `Game is running. It is currently ${turn}'s turn to bid`, players: players });
             // console.log(`It is currently ${turn}'s turn to bid`); // Debugging
         } else {
-            res.status(400).send('Game not running. Players waiting to start game are ' + players.map(player => player[0]).join(', '));
+            res.status(400).json({ message: 'Game not running. Players waiting to start game are ' + players.map(player => player[0]).join(', ') });
         }
     } catch (error) {
         errorHandler(error);
@@ -171,7 +172,7 @@ app.get('/teams', async (req: Request, res: Response) => {
         if (gameRunning) {
             res.status(200).json([team1, team2]);
         } else {
-            res.status(400).send('Game not running');
+            res.status(400).json({ message: 'Game not running' });
         }
     } catch (error) {
         errorHandler(error);
@@ -183,8 +184,7 @@ app.post('/bid', async (req: Request, res: Response) => {
     // Check if player is allowed to bid
     try {
         if (req.body.player !== turn) {
-            res.status(400).send(`It is not your turn to bid. It is ${turn}'s turn to bid`);
-            // console.log(`It is not ${req.body.player}'s turn to bid, it is ${turn}'s turn to bid`) // Debugging
+            res.status(400).json({ message: `It is not your turn to bid. It is ${turn}'s turn to bid` });
             return;
         } else { 
             // If player bids "pass"
@@ -201,20 +201,20 @@ app.post('/bid', async (req: Request, res: Response) => {
                     // Reset the turn to player 1 for next round
                     setTurn();
                     // Reset the players hands for next round *NOT WORKING YET*
-                    res.status(200).json( { message: `Round ${round-1} is over. It is now ${turn}'s turn to bid`, turn: turn, round: round } );
+                    res.status(200).json({ message: `Round ${round-1} is over. It is now ${turn}'s turn to bid`, turn: turn, round: round });
                     // console.log(`Game is now in round number ${round}`); // Debugging
                     // If round ends: Exit the function
                     return;
                 }
 
             setNextTurn();
-            res.status(200).json( { message: `${previousTurn} passed. It is now ${turn}'s turn to bid`, turn: turn } );
+            res.status(200).json({ message: `${previousTurn} passed. It is now ${turn}'s turn to bid`, turn: turn });
 
             } else if (req.body.bid <= 0 ) { // If player bids a 0 or less than 0 (which is impossible)
-                res.status(400).send(`You cannot bid 0 or less than the current bid, ${turn}`);
+                res.status(400).json(`You cannot bid 0 or less than the current bid, ${turn}`);
                 return;
             } else if (req.body.bid < bidding) { // If player bids lower than the current bid (which is impossible)
-                res.status(400).send(`You cannot bid lower than the current bid, ${turn}`);
+                res.status(400).json(`You cannot bid lower than the current bid, ${turn}`);
                 return;
             } else { // If player bids a number higher than the current bid
                 bidding = req.body.bid;
@@ -222,7 +222,7 @@ app.post('/bid', async (req: Request, res: Response) => {
                 passes = 0;
                 // Pass the turn to the next player
                 setNextTurn();
-                res.status(200).json( { message: `The current bid is ${bidding} by ${whoBid}. It is now ${turn}'s turn to bid`, turn: turn, bidding: bidding, whoBid: whoBid } );
+                res.status(200).json({ message: `The current bid is ${bidding} by ${whoBid}. It is now ${turn}'s turn to bid`, turn: turn, bidding: bidding, whoBid: whoBid });
                 // console.log(`The current bid is ${bidding} by ${whoBid}. It is now ${turn}'s turn to bid`); // Debugging
             }
         } 
