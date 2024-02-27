@@ -11,7 +11,7 @@ GET http://localhost:80/players
 ###
 
 GET http://localhost:80/teams
-
+ 
 ###
 
 POST http://localhost:80/bid
@@ -50,4 +50,40 @@ Content-Type: application/json
 {
   "player": "Kai Åge",
   "bid": "PASS"
+}
+
+###
+
+POST http://localhost:80/addplayer
+Content-Type: application/json
+
+{
+  "name": "Trond"
+}
+
+###
+
+POST http://localhost:80/addplayer
+Content-Type: application/json
+
+{
+  "name": "Per"
+}
+
+###
+
+POST http://localhost:80/addplayer
+Content-Type: application/json
+
+{
+  "name": "Kari"
+}
+
+###
+
+POST http://localhost:80/addplayer
+Content-Type: application/json
+
+{
+  "name": "Kai Åge"
 }
