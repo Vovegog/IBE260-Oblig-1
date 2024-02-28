@@ -38,23 +38,6 @@ class Player {
     }
 }
 
-// RESTful post to add a player
-app.post('/addplayer', async (req: Request, res: Response) => {
-    try {
-        if (gameRunning) {
-            res.status(400).json({ message: 'Game already running' });
-        } else if (players.length < 4) {
-            let player = new Player(req.body.name);
-            players.push([player.name, []]);
-            res.status(200).json({ message: `${player.name} added to the game` });
-        } else {
-            res.status(400).json({ message: 'Game already has 4 players' });
-        }
-    } catch (error) {
-        errorHandler(error);
-    }
-});
-
 // Initiate variable "deck"
 let deck: string[] = [];
 
@@ -106,6 +89,23 @@ function createDeck() {
         errorHandler(error);
     }
 }
+
+// RESTful post to add a player
+app.post('/addplayer', async (req: Request, res: Response) => {
+    try {
+        if (gameRunning) {
+            res.status(400).json({ message: 'Game already running' });
+        } else if (players.length < 4) {
+            let player = new Player(req.body.name);
+            players.push([player.name, []]);
+            res.status(200).json({ message: `${player.name} added to the game` });
+        } else {
+            res.status(400).json({ message: 'Game already has 4 players' });
+        }
+    } catch (error) {
+        errorHandler(error);
+    }
+});
 
 // RESTful POST to start the game
 app.post('/start', (req: Request, res: Response) => {
