@@ -8,7 +8,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "compile": "npx tsc && node main.js",
+    "compile": "npx tsc --outDir dist/ && node main.js",
     "dev": "node ./node_modules/nodemon/bin/nodemon.js -e ts --watch ./src --exec \"npm run compile\" || exit 1"
   },
   "author": "",
