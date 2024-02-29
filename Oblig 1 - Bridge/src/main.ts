@@ -214,7 +214,7 @@ app.post('/bid', async (req: Request, res: Response) => {
             }
             setNextTurn();
             res.status(200).json({ message: `${previousTurn} passed. It is now ${turn}'s turn to bid`, turn: turn });
-        } else if (req.body.bid[1] <= 0 || !("Jack" || "Queen" || "King" || "Ace")) { // If player bids a 0 or less than 0 (which is impossible), or a card that is not a Jack, Queen, King or Ace (since they don't have a numeric value)
+        } else if (req.body.bid[1] <= 0 && !("Jack" || "Queen" || "King" || "Ace")) { // If player bids a 0 or less than 0 (which is impossible), or a card that is not a Jack, Queen, King or Ace (since they don't have a numeric value)
             res.status(400).json(`You cannot bid 0, less than 0 or something that doesn't exist, ${turn}`);
         } else if (isPlayedCardInHand(req.body.player, req.body.bid) === false) { // If bid card is not in players hand, we return an error
             res.status(400).json(`You cannot bid a card you don't have, ${turn}`);
