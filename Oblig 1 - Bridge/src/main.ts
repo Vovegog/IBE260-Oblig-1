@@ -20,6 +20,7 @@ class Player {
     }
 }
 
+// ----------------- FUNCTIONS ----------------- //
 function errorHandler (err: any) {
     console.error(err);
 }
@@ -73,10 +74,13 @@ function createDeck() {
     } catch (error) {
         errorHandler(error);
     }
-}
+} 
+// ----------------- END OF FUNCTIONS ----------------- //
+
 // Create a TypeScript type for the suits and ranks of the cards
 type rank = 0 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | "Jack" | "Queen" | "King" | "Ace"; // 0 is default value for start of bidding phase
 
+// ----------------- VARIABLES ----------------- //
 // Boolean to check if the game is running
 let gameRunning: boolean = false;
 
@@ -105,6 +109,7 @@ let previousTurn: string = "";
 let turn: string = "";
 
 export let playedCard: [string /* Suit */, rank /* Rank */] = ["", 0]; // This is the card that is played, we use it to check if it can be played or not
+// ----------------- END OF VARIABLES ----------------- //
 
 // RESTful post to add a player
 app.post('/addplayer', async (req: Request, res: Response) => {
