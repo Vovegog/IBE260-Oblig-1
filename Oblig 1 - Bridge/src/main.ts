@@ -12,26 +12,6 @@ app.use(function(inRequest: Request, inResponse: Response, inNext: NextFunction)
     inNext();
 });
 
-function errorHandler (err: any) {
-    console.error(err);
-}
-
-// Boolean to check if the game is running
-let gameRunning: boolean = false;
-
-// Create an array holding the 4 players with their hands (of cards)
-let players: [string, string[]][] = [];
-let team1: string[] = [];
-let team2: string[] = [];
-
-type rank = 0 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | "Jack" | "Queen" | "King" | "Ace"; // 0 is default value for start of bidding phase
-
-// Make player 1 and 3 a team, and player 2 and 4 a team
-function createTeams(){
-    team1 = [players[0][0], players[2][0]];
-    team2 = [players[1][0], players[3][0]];
-}
-
 // Create a class for the players to let them name theirselves
 class Player {
     name: string;
@@ -40,33 +20,34 @@ class Player {
     }
 }
 
-// Initiate variable "deck"
-let deck: string[] = [];
-
-// Declare variables for bidding and who put the bid
-let bidding: [string, rank] = ["", 0]; // [Suit, Rank]
-let whoBid: string = '';
-
-// Variable for storing passes in a row. 3 PASSES IN A ROW ENDS THE ROUND!!!
-let passes: number = 0;
-
-// Declare a variable for the round
-let round: number = 1;
-
-// Need to keep track of which players turn it is
-let previousTurn: string = "";
-let turn: string = "";
-
-// Set turn to player 1
-function setTurn() {
-    turn = players[0][0];
+function errorHandler (err: any) {
+    console.error(err);
 }
 
-export let playedCard: [string /* Suit */, rank /* Rank */] = ["", 0]; // This is the card that is played, we use it to check if it can be played or not
+// Make player 1 and 3 a team, and player 2 and 4 a team
+function createTeams(){
+    team1 = [players[0][0], players[2][0]];
+    team2 = [players[1][0], players[3][0]];
+}
+
+// Reset turn to player 1
+function resetTurn() {
+    turn = players[0][0];
+}
 
 function setNextTurn() {
     previousTurn = turn;
     turn = players[(players.findIndex(player => player[0] === turn) + 1) % 4][0];
+}
+
+function isPlayedCardInHand(player: string, bid: [string, rank]): boolean {
+    let found = false;
+    let cardToSearchFor = bid[1] + " of " + bid[0];
+    const currentPlayer = players.find(player => player[0] === turn);
+    if (currentPlayer && currentPlayer[1].includes(cardToSearchFor)) {
+        found = true;
+    }
+    return found;
 }
 
 // Create a deck and shuffle it
@@ -93,16 +74,37 @@ function createDeck() {
         errorHandler(error);
     }
 }
+// Create a TypeScript type for the suits and ranks of the cards
+type rank = 0 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | "Jack" | "Queen" | "King" | "Ace"; // 0 is default value for start of bidding phase
 
-function isPlayedCardInHand(player: string, bid: [string, rank]): boolean {
-    let found = false;
-    let cardToSearchFor = bid[1] + " of " + bid[0];
-    const currentPlayer = players.find(player => player[0] === turn);
-    if (currentPlayer && currentPlayer[1].includes(cardToSearchFor)) {
-        found = true;
-    }
-    return found;
-}
+// Boolean to check if the game is running
+let gameRunning: boolean = false;
+
+// Create an array holding the 4 players with their hands (of cards)
+let players: [string, string[]][] = [];
+
+// Create two arrays for the two teams
+let team1: string[] = [];
+let team2: string[] = [];
+
+// Initiate variable "deck"
+let deck: string[] = [];
+
+// Declare variables for bidding and who put the bid
+let bidding: [string, rank] = ["", 0]; // [Suit, Rank]
+let whoBid: string = '';
+
+// Variable for storing passes in a row. 3 PASSES IN A ROW ENDS THE ROUND!!!
+let passes: number = 0;
+
+// Declare a variable for the round
+let round: number = 1;
+
+// Need to keep track of which players turn it is
+let previousTurn: string = "";
+let turn: string = "";
+
+export let playedCard: [string /* Suit */, rank /* Rank */] = ["", 0]; // This is the card that is played, we use it to check if it can be played or not
 
 // RESTful post to add a player
 app.post('/addplayer', async (req: Request, res: Response) => {
@@ -130,11 +132,10 @@ app.post('/start', (req: Request, res: Response) => {
             gameRunning = true;
             createDeck();
             createTeams();
-            setTurn();
+            resetTurn();
             /* Res.status sends out the message to display in the client, whose turn it is
             and the players hands to be displayed in the client, when we get to that in assignment 2 */
             res.status(200).json({ message: `Game started. It is now ${turn}'s turn to bid`, turn: turn, players: players });
-            // console.log(`It is now ${turn}'s turn to bid`); // Debugging
         } else {
             res.status(400).json({ message: 'Game needs 4 players to start' });
         }
@@ -170,7 +171,6 @@ app.get('/players', async (req: Request, res: Response) => {
     try {
         if (gameRunning) {
             res.status(200).json({ message: `Game is running. It is currently ${turn}'s turn to bid`, players: players });
-            // console.log(`It is currently ${turn}'s turn to bid`); // Debugging
         } else {
             res.status(400).json({ message: 'Game not running. Players waiting to start game are ' + players.map(player => player[0]).join(', ') });
         }
@@ -209,7 +209,7 @@ app.post('/bid', async (req: Request, res: Response) => {
                 passes = 0;
                 bidding = ["", 0];
                 whoBid = '';
-                setTurn();
+                resetTurn();
                 res.status(200).json({ message: `Round ${round-1} is over. It is now ${turn}'s turn to bid`, turn: turn, round: round });
             }
             setNextTurn();
