@@ -24,6 +24,8 @@ let players: [string, string[]][] = [];
 let team1: string[] = [];
 let team2: string[] = [];
 
+type rank = 0 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | "Jack" | "Queen" | "King" | "Ace"; // 0 is default value for start of bidding phase
+
 // Make player 1 and 3 a team, and player 2 and 4 a team
 function createTeams(){
     team1 = [players[0][0], players[2][0]];
@@ -42,7 +44,7 @@ class Player {
 let deck: string[] = [];
 
 // Declare variables for bidding and who put the bid
-let bidding: [string, any] = ["", 0]; // [Suit, Rank] - "any" is used to allow for both string and number as Jack, Queen, King and Ace are strings
+let bidding: [string, rank] = ["", 0]; // [Suit, Rank]
 let whoBid: string = '';
 
 // Variable for storing passes in a row. 3 PASSES IN A ROW ENDS THE ROUND!!!
@@ -60,7 +62,7 @@ function setTurn() {
     turn = players[0][0];
 }
 
-export let playedCard: [string /* Suit */, any /* Rank */] = ["", 0]; // This is the card that is played, we use it to check if it can be played or not. Any, cuz Jack, Queen, King and Ace are strings
+export let playedCard: [string /* Suit */, rank /* Rank */] = ["", 0]; // This is the card that is played, we use it to check if it can be played or not
 
 function setNextTurn() {
     previousTurn = turn;
@@ -92,7 +94,7 @@ function createDeck() {
     }
 }
 
-function isPlayedCardInHand(player: string, bid: [string, any]): boolean {
+function isPlayedCardInHand(player: string, bid: [string, rank]): boolean {
     let found = false;
     let cardToSearchFor = bid[1] + " of " + bid[0];
     const currentPlayer = players.find(player => player[0] === turn);
@@ -212,7 +214,7 @@ app.post('/bid', async (req: Request, res: Response) => {
             }
             setNextTurn();
             res.status(200).json({ message: `${previousTurn} passed. It is now ${turn}'s turn to bid`, turn: turn });
-        } else if (req.body.bid[1] < 1 && !("Jack" || "Queen" || "King" || "Ace")) { // If player bids a 0 or less than 0 (which is impossible), or a card that is not a Jack, Queen, King or Ace (since they don't have a numeric value)
+        } else if (req.body.bid[1] <= 0 || !("Jack" || "Queen" || "King" || "Ace")) { // If player bids a 0 or less than 0 (which is impossible), or a card that is not a Jack, Queen, King or Ace (since they don't have a numeric value)
             res.status(400).json(`You cannot bid 0, less than 0 or something that doesn't exist, ${turn}`);
         } else if (isPlayedCardInHand(req.body.player, req.body.bid) === false) { // If bid card is not in players hand, we return an error
             res.status(400).json(`You cannot bid a card you don't have, ${turn}`);
