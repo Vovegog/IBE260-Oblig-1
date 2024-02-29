@@ -219,8 +219,8 @@ app.post('/bid', async (req: Request, res: Response) => {
             }
             setNextTurn();
             res.status(200).json({ message: `${previousTurn} passed. It is now ${turn}'s turn to bid`, turn: turn });
-        } else if (req.body.bid[1] <= 0 || (req.body.bid[1]) > 7) { // If player bids a 0 or less than 0, or more than 7
-            res.status(400).json(`You cannot bid 0, less than 0 or higher than 7, ${turn}`);
+        } else if (req.body.bid[1] <= 0 || (req.body.bid[1]) > 7 || (req.body.bid[1] == ("Jack" || "Queen" || "King" || "Ace"))) { // If player bids a 0 or less than 0, more than 7 or named cards
+            res.status(400).json(`You cannot bid 0, less than 0, higher than 7 or any of the named cards, ${turn}`);
         } else if (isPlayedCardInHand(req.body.player, req.body.bid) === false) { // If bid card is not in players hand, we return an error
             res.status(400).json(`You cannot bid a card you don't have, ${turn}`);
         } else {
@@ -240,7 +240,7 @@ app.post('/bid', async (req: Request, res: Response) => {
                 setNextTurn();
                 res.status(200).json({ message: `The current bid is ${bidding[1]} of ${bidding[0]} by ${whoBid}. It is now ${turn}'s turn to bid`, turn: turn, bidding: bidding, whoBid: whoBid });
             } else {
-                res.status(400).json({ message: `Something went wrong. Your bid might be invalid, please try again ${turn}.` });
+                res.status(400).json({ message: `Something went wrong. Your bid might be invalid, please try again ${turn}. Remember, you can't bid higher than a 7, and you can't bid a suit lower in ranking than the current bid.` });
             }
         }
         } catch (error) {

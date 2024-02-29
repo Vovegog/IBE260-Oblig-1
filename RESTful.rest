@@ -19,7 +19,7 @@ Content-Type: application/json
 
 {
   "player": "Trond",
-  "bid": ["Spades", "Ace"]
+  "bid": ["Hearts", 7]
 }
 
 ###
@@ -29,7 +29,7 @@ Content-Type: application/json
 
 {
   "player": "Kari",
-  "bid": ["Clubs", "Jack"]
+  "bid": ["Clubs", 7]
 }
 
 ###
@@ -39,7 +39,7 @@ Content-Type: application/json
 
 {
   "player": "Per",
-  "bid": ["Diamonds", 10]
+  "bid": ["Diamonds", 7]
 }
 
 ###
@@ -49,7 +49,7 @@ Content-Type: application/json
 
 {
   "player": "Kai Åge",
-  "bid": ["Hearts", 6]
+  "bid": ["Diamonds", 5]
 }
 
 ###
