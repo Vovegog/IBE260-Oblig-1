@@ -42,8 +42,7 @@ class Player {
 let deck: string[] = [];
 
 // Declare variables for bidding and who put the bid
-// THIS NEEDS TO BE CHANGED TO ALLOW RANKS AND NUMBERS THAT TRUMP EACH OTHER!!!
-let bidding: number = 0;
+let bidding: [string, any] = ["", 0]; // [Suit, Rank] - "any" is used to allow for both string and number as Jack, Queen, King and Ace are strings
 let whoBid: string = '';
 
 // Variable for storing passes in a row. 3 PASSES IN A ROW ENDS THE ROUND!!!
@@ -56,9 +55,12 @@ let round: number = 1;
 let previousTurn: string = "";
 let turn: string = "";
 
+// Set turn to player 1
 function setTurn() {
     turn = players[0][0];
 }
+
+export let playedCard: [string /* Suit */, any /* Rank */] = ["", 0]; // This is the card that is played, we use it to check if it can be played or not. Any, cuz Jack, Queen, King and Ace are strings
 
 function setNextTurn() {
     previousTurn = turn;
@@ -88,6 +90,16 @@ function createDeck() {
     } catch (error) {
         errorHandler(error);
     }
+}
+
+function isPlayedCardInHand(player: string, bid: [string, any]): boolean {
+    let found = false;
+    let cardToSearchFor = bid[1] + " of " + bid[0];
+    const currentPlayer = players.find(player => player[0] === turn);
+    if (currentPlayer && currentPlayer[1].includes(cardToSearchFor)) {
+        found = true;
+    }
+    return found;
 }
 
 // RESTful post to add a player
@@ -138,7 +150,7 @@ app.post('/restart', async (req: Request, res: Response) => {
             team1 = [];
             team2 = [];
             deck = [];
-            bidding = 0;
+            bidding = ["", 0];
             whoBid = '';
             passes = 0;
             round = 1;
@@ -150,7 +162,6 @@ app.post('/restart', async (req: Request, res: Response) => {
         errorHandler(error);
     }
 });
-
 
 // RESTful GET to get the players and their hands. Mostly for debugging purposes, but could be used for the players to see their hands
 app.get('/players', async (req: Request, res: Response) => {
@@ -179,57 +190,47 @@ app.get('/teams', async (req: Request, res: Response) => {
     }
 });
 
-// RESTful POST to make a bid
+// RESTful POST to play a card
 app.post('/bid', async (req: Request, res: Response) => {
-    // Check if player is allowed to bid
     try {
+        // Check if game is running
+        if (!gameRunning) {
+            res.status(400).json({ message: 'Game not running' });
+        }
+        // Check if it's the players turn
         if (req.body.player !== turn) {
-            res.status(400).json({ message: `It is not your turn to bid. It is ${turn}'s turn to bid` });
-            return;
-        } else { 
-            // If player bids "pass"
-            if (req.body.bid === "PASS") {
-                passes++;
-                // Check passes. If passes in a row is 3, the round is over
-                if (passes === 3) {
-                    // console.log(`Round ${round} is over`); // Debugging
-                    round++;
-                    // Reset passes to 0 for next round
-                    passes = 0;
-                    // Reset the bidding to 0 for next round
-                    bidding = 0;
-                    // Reset the turn to player 1 for next round
-                    setTurn();
-                    // Reset the players hands for next round *NOT WORKING YET*
-                    res.status(200).json({ message: `Round ${round-1} is over. It is now ${turn}'s turn to bid`, turn: turn, round: round });
-                    // console.log(`Game is now in round number ${round}`); // Debugging
-                    // If round ends: Exit the function
-                    return;
-                }
-
+            res.status(400).json({ message: `It is not your turn to bid. It is ${turn}'s turn to bid`, turn: turn });
+        } else if (req.body.bid[0].toUpperCase() === "PASS") { // If player bids "pass"
+            passes++;
+            if (passes === 3) { // Check passes. If passes in a row is 3, the round is over
+                round++;        // Increase to round 2 and reset variables
+                passes = 0;
+                bidding = ["", 0];
+                whoBid = '';
+                setTurn();
+                res.status(200).json({ message: `Round ${round-1} is over. It is now ${turn}'s turn to bid`, turn: turn, round: round });
+            }
             setNextTurn();
             res.status(200).json({ message: `${previousTurn} passed. It is now ${turn}'s turn to bid`, turn: turn });
-
-            } else if (req.body.bid <= 0 ) { // If player bids a 0 or less than 0 (which is impossible)
-                res.status(400).json(`You cannot bid 0 or less than the current bid, ${turn}`);
-                return;
-            } else if (req.body.bid < bidding) { // If player bids lower than the current bid (which is impossible)
-                res.status(400).json(`You cannot bid lower than the current bid, ${turn}`);
-                return;
-            } else { // If player bids a number higher than the current bid
-                bidding = req.body.bid;
-                whoBid = turn;
-                passes = 0;
-                // Pass the turn to the next player
-                setNextTurn();
-                res.status(200).json({ message: `The current bid is ${bidding} by ${whoBid}. It is now ${turn}'s turn to bid`, turn: turn, bidding: bidding, whoBid: whoBid });
-                // console.log(`The current bid is ${bidding} by ${whoBid}. It is now ${turn}'s turn to bid`); // Debugging
-            }
-        } 
-    } catch (error) {
-        errorHandler(error);
-    }
+        } else if (req.body.bid[1] < 1 && !("Jack" || "Queen" || "King" || "Ace")) { // If player bids a 0 or less than 0 (which is impossible), or a card that is not a Jack, Queen, King or Ace (since they don't have a numeric value)
+            res.status(400).json(`You cannot bid 0, less than 0 or something that doesn't exist, ${turn}`);
+        } else if (isPlayedCardInHand(req.body.player, req.body.bid) === false) { // If bid card is not in players hand, we return an error
+            res.status(400).json(`You cannot bid a card you don't have, ${turn}`);
+        } else {
+            // We now assume the played bids are valid
+            /* REMEMBER TO ADD "BRIDGERULES" FUNCTION TO CHECK IF THE BID IS VALID <----------- THIS IS DONE HERE */
+            /* if bid is valid, set the bid and whoBid */
+            bidding = req.body.bid;
+            whoBid = turn;
+            passes = 0;
+            setNextTurn();
+            res.status(200).json({ message: `The current bid is ${bidding[1]} of ${bidding[0]} by ${whoBid}. It is now ${turn}'s turn to bid`, turn: turn, bidding: bidding, whoBid: whoBid });
+        }
+        } catch (error) {
+            errorHandler(error);
+        }
 });
+
 
 app.listen(80, () => {
     console.log('Server started. Fuck you.');

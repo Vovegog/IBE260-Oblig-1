@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.playedCard = void 0;
 const express_1 = __importDefault(require("express"));
 const path_1 = __importDefault(require("path"));
 const app = (0, express_1.default)();
@@ -43,29 +44,10 @@ class Player {
         this.name = name;
     }
 }
-// RESTful post to add a player
-app.post('/addplayer', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        if (gameRunning) {
-            res.status(400).send('Game already running');
-        }
-        else if (players.length < 4) {
-            let player = new Player(req.body.name);
-            players.push([player.name, []]);
-            res.status(200).send(`${player.name} added to the game`);
-        }
-        else {
-            res.status(400).send('Game already has 4 players');
-        }
-    }
-    catch (error) {
-        errorHandler(error);
-    }
-}));
 // Initiate variable "deck"
 let deck = [];
 // Declare variables for bidding and who put the bid
-let bidding = 0;
+let bidding = ["", 0]; // [Suit, Rank] - "any" is used to allow for both string and number as Jack, Queen, King and Ace are strings
 let whoBid = '';
 // Variable for storing passes in a row. 3 PASSES IN A ROW ENDS THE ROUND!!!
 let passes = 0;
@@ -74,9 +56,11 @@ let round = 1;
 // Need to keep track of which players turn it is
 let previousTurn = "";
 let turn = "";
+// Set turn to player 1
 function setTurn() {
     turn = players[0][0];
 }
+exports.playedCard = ["", 0]; // This is the card that is played, we use it to check if it can be played or not. Any, cuz Jack, Queen, King and Ace are strings
 function setNextTurn() {
     previousTurn = turn;
     turn = players[(players.findIndex(player => player[0] === turn) + 1) % 4][0];
@@ -106,11 +90,39 @@ function createDeck() {
         errorHandler(error);
     }
 }
+function isPlayedCardInHand(player, bid) {
+    let found = false;
+    let cardToSearchFor = bid[1] + " of " + bid[0];
+    const currentPlayer = players.find(player => player[0] === turn);
+    if (currentPlayer && currentPlayer[1].includes(cardToSearchFor)) {
+        found = true;
+    }
+    return found;
+}
+// RESTful post to add a player
+app.post('/addplayer', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        if (gameRunning) {
+            res.status(400).json({ message: 'Game already running' });
+        }
+        else if (players.length < 4) {
+            let player = new Player(req.body.name);
+            players.push([player.name, []]);
+            res.status(200).json({ message: `${player.name} added to the game` });
+        }
+        else {
+            res.status(400).json({ message: 'Game already has 4 players' });
+        }
+    }
+    catch (error) {
+        errorHandler(error);
+    }
+}));
 // RESTful POST to start the game
 app.post('/start', (req, res) => {
     try {
         if (gameRunning) {
-            res.status(400).send('Game already running');
+            res.status(400).json({ message: 'Game already running' });
         }
         else if (players.length == 4) {
             gameRunning = true;
@@ -123,7 +135,7 @@ app.post('/start', (req, res) => {
             // console.log(`It is now ${turn}'s turn to bid`); // Debugging
         }
         else {
-            res.status(400).send('Game needs 4 players to start');
+            res.status(400).json({ message: 'Game needs 4 players to start' });
         }
     }
     catch (error) {
@@ -139,14 +151,14 @@ app.post('/restart', (req, res) => __awaiter(void 0, void 0, void 0, function* (
             team1 = [];
             team2 = [];
             deck = [];
-            bidding = 0;
+            bidding = ["", 0];
             whoBid = '';
             passes = 0;
             round = 1;
-            res.status(200).send('Game restarted. Start adding new players to start a new game');
+            res.status(200).json({ message: 'Game restarted. Start adding new players to start a new game' });
         }
         else {
-            res.status(400).send('Game not running');
+            res.status(400).json({ message: 'Game not running' });
         }
     }
     catch (error) {
@@ -161,7 +173,7 @@ app.get('/players', (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             // console.log(`It is currently ${turn}'s turn to bid`); // Debugging
         }
         else {
-            res.status(400).send('Game not running. Players waiting to start game are ' + players.map(player => player[0]).join(', '));
+            res.status(400).json({ message: 'Game not running. Players waiting to start game are ' + players.map(player => player[0]).join(', ') });
         }
     }
     catch (error) {
@@ -175,62 +187,52 @@ app.get('/teams', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             res.status(200).json([team1, team2]);
         }
         else {
-            res.status(400).send('Game not running');
+            res.status(400).json({ message: 'Game not running' });
         }
     }
     catch (error) {
         errorHandler(error);
     }
 }));
-// RESTful POST to make a bid
+// RESTful POST to play a card
 app.post('/bid', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    // Check if player is allowed to bid
     try {
+        // Check if game is running
+        if (!gameRunning) {
+            res.status(400).json({ message: 'Game not running' });
+        }
+        // Check if it's the players turn
         if (req.body.player !== turn) {
-            res.status(400).send(`It is not your turn to bid. It is ${turn}'s turn to bid`);
-            // console.log(`It is not ${req.body.player}'s turn to bid, it is ${turn}'s turn to bid`) // Debugging
-            return;
+            res.status(400).json({ message: `It is not your turn to bid. It is ${turn}'s turn to bid`, turn: turn });
+        }
+        else if (req.body.bid[0].toUpperCase() === "PASS") { // If player bids "pass"
+            passes++;
+            if (passes === 3) { // Check passes. If passes in a row is 3, the round is over
+                round++; // Increase to round 2 and reset variables
+                passes = 0;
+                bidding = ["", 0];
+                whoBid = '';
+                setTurn();
+                res.status(200).json({ message: `Round ${round - 1} is over. It is now ${turn}'s turn to bid`, turn: turn, round: round });
+            }
+            setNextTurn();
+            res.status(200).json({ message: `${previousTurn} passed. It is now ${turn}'s turn to bid`, turn: turn });
+        }
+        else if (req.body.bid[1] < 1 && !("Jack" || "Queen" || "King" || "Ace")) { // If player bids a 0 or less than 0 (which is impossible), or a card that is not a Jack, Queen, King or Ace (since they don't have a numeric value)
+            res.status(400).json(`You cannot bid 0, less than 0 or something that doesn't exist, ${turn}`);
+        }
+        else if (isPlayedCardInHand(req.body.player, req.body.bid) === false) { // If bid card is not in players hand, we return an error
+            res.status(400).json(`You cannot bid a card you don't have, ${turn}`);
         }
         else {
-            // If player bids "pass"
-            if (req.body.bid === "PASS") {
-                passes++;
-                // Check passes. If passes in a row is 3, the round is over
-                if (passes === 3) {
-                    // console.log(`Round ${round} is over`); // Debugging
-                    round++;
-                    // Reset passes to 0 for next round
-                    passes = 0;
-                    // Reset the bidding to 0 for next round
-                    bidding = 0;
-                    // Reset the turn to player 1 for next round
-                    setTurn();
-                    // Reset the players hands for next round *NOT WORKING YET*
-                    res.status(200).json({ message: `Round ${round - 1} is over. It is now ${turn}'s turn to bid`, turn: turn, round: round });
-                    // console.log(`Game is now in round number ${round}`); // Debugging
-                    // If round ends: Exit the function
-                    return;
-                }
-                setNextTurn();
-                res.status(200).json({ message: `${previousTurn} passed. It is now ${turn}'s turn to bid`, turn: turn });
-            }
-            else if (req.body.bid <= 0) { // If player bids a 0 or less than 0 (which is impossible)
-                res.status(400).send(`You cannot bid 0 or less than the current bid, ${turn}`);
-                return;
-            }
-            else if (req.body.bid < bidding) { // If player bids lower than the current bid (which is impossible)
-                res.status(400).send(`You cannot bid lower than the current bid, ${turn}`);
-                return;
-            }
-            else { // If player bids a number higher than the current bid
-                bidding = req.body.bid;
-                whoBid = turn;
-                passes = 0;
-                // Pass the turn to the next player
-                setNextTurn();
-                res.status(200).json({ message: `The current bid is ${bidding} by ${whoBid}. It is now ${turn}'s turn to bid`, turn: turn, bidding: bidding, whoBid: whoBid });
-                // console.log(`The current bid is ${bidding} by ${whoBid}. It is now ${turn}'s turn to bid`); // Debugging
-            }
+            // We now assume the played bids are valid
+            /* REMEMBER TO ADD "BRIDGERULES" FUNCTION TO CHECK IF THE BID IS VALID <----------- THIS IS DONE HERE */
+            /* if bid is valid, set the bid and whoBid */
+            bidding = req.body.bid;
+            whoBid = turn;
+            passes = 0;
+            setNextTurn();
+            res.status(200).json({ message: `The current bid is ${bidding[1]} of ${bidding[0]} by ${whoBid}. It is now ${turn}'s turn to bid`, turn: turn, bidding: bidding, whoBid: whoBid });
         }
     }
     catch (error) {

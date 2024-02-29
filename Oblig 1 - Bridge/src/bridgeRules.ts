@@ -1,3 +1,1 @@
-function add(a: number, b: number): number {
-  return a + b
-}
+// This is where we will write all our bridge rules/logic
