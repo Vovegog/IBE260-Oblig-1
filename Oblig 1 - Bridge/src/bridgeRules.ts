@@ -17,7 +17,15 @@ export function checkValidBid(playedcard: [string, rank]): boolean {
         // Now we convert the current bid to numbers as well, for easy comparison later
         const currentBidSuit: Suit = bidding[0] as Suit;   // Convert the suit of the current bid to a number
         const currentBidValue: Rank = bidding[1] as Rank;  // Convert the rank of the current bid to a number
-        
+        /*--------------------------------------------------------------------------------------------*/
+        /* 
+            I tried to properly type the 4 consts above, but I ran into trouble every time
+            when I tried to do it for bidding and playedcard. Couldn't figure out how to do it properly.
+            That's why I ended up using "as Suit" and "as Rank" to cast the types to the correct ones,
+            even though it's not "proper" TypeScript.
+        */        
+        /*--------------------------------------------------------------------------------------------*/
+
         // Now we can compare the played card to the current bid
         if (rankDictionary[playedCardValue] > rankDictionary["8"]) { // If the value of the played card is higher than 7, it's not valid
             valid = false;
