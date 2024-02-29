@@ -1,5 +1,6 @@
 import express, { Express, NextFunction, Request, Response } from 'express';
 import path from 'path';
+import { checkValidBid } from './bridgeRules';
 
 const app: Express = express();
 app.use(express.json());
@@ -12,7 +13,7 @@ app.use(function(inRequest: Request, inResponse: Response, inNext: NextFunction)
     inNext();
 });
 
-// Create a class for the players to let them name theirselves
+// Create a class blueprint for the players to let them name theirselves
 class Player {
     name: string;
     constructor(name: string) {
@@ -21,7 +22,7 @@ class Player {
 }
 
 // ----------------- FUNCTIONS ----------------- //
-function errorHandler (err: any) {
+export function errorHandler (err: any) {
     console.error(err);
 }
 
@@ -54,7 +55,6 @@ function isPlayedCardInHand(player: string, bid: [string, rank]): boolean {
 // Create a deck and shuffle it
 function createDeck() {
     try {
-        deck = []; // Important to reset the deck before creating a new one in case of restart of the game
         let suits: string[] = ['Spades', 'Hearts', 'Diamonds', 'Clubs'];
         let ranks: string[] = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace'];
         for (let suit of suits) {
@@ -78,7 +78,7 @@ function createDeck() {
 // ----------------- END OF FUNCTIONS ----------------- //
 
 // Create a TypeScript type for the suits and ranks of the cards
-type rank = 0 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | "Jack" | "Queen" | "King" | "Ace"; // 0 is default value for start of bidding phase
+export type rank = 0 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | "Jack" | "Queen" | "King" | "Ace"; // 0 is default value for start of bidding phase
 
 // ----------------- VARIABLES ----------------- //
 // Boolean to check if the game is running
@@ -95,7 +95,7 @@ let team2: string[] = [];
 let deck: string[] = [];
 
 // Declare variables for bidding and who put the bid
-let bidding: [string, rank] = ["", 0]; // [Suit, Rank]
+export let bidding: [string, rank] = ["", 0]; // [Suit, Rank]
 let whoBid: string = '';
 
 // Variable for storing passes in a row. 3 PASSES IN A ROW ENDS THE ROUND!!!
@@ -164,7 +164,7 @@ app.post('/restart', async (req: Request, res: Response) => {
             round = 1;
             res.status(200).json({ message: 'Game restarted. Start adding new players to start a new game' });
         } else {
-            res.status(400).json({ message: 'Game not running' });
+            res.status(400).json({ message: 'Game is not running, there\'s nothing to restart.' });
         }
     } catch (error) {
         errorHandler(error);
@@ -175,9 +175,9 @@ app.post('/restart', async (req: Request, res: Response) => {
 app.get('/players', async (req: Request, res: Response) => {
     try {
         if (gameRunning) {
-            res.status(200).json({ message: `Game is running. It is currently ${turn}'s turn to bid`, players: players });
+            res.status(200).json({ message: `Game is running. It is currently ${turn}'s turn to bid`, turn: turn, players: players });
         } else {
-            res.status(400).json({ message: 'Game not running. Players waiting to start game are ' + players.map(player => player[0]).join(', ') });
+            res.status(400).json({ message: 'Game is not running. Players waiting to start game are ' + players.map(player => player[0]).join(', ') });
         }
     } catch (error) {
         errorHandler(error);
@@ -219,19 +219,29 @@ app.post('/bid', async (req: Request, res: Response) => {
             }
             setNextTurn();
             res.status(200).json({ message: `${previousTurn} passed. It is now ${turn}'s turn to bid`, turn: turn });
-        } else if (req.body.bid[1] <= 0 && !("Jack" || "Queen" || "King" || "Ace")) { // If player bids a 0 or less than 0 (which is impossible), or a card that is not a Jack, Queen, King or Ace (since they don't have a numeric value)
-            res.status(400).json(`You cannot bid 0, less than 0 or something that doesn't exist, ${turn}`);
+        } else if (req.body.bid[1] <= 0 || (req.body.bid[1]) > 7) { // If player bids a 0 or less than 0, or more than 7
+            res.status(400).json(`You cannot bid 0, less than 0 or higher than 7, ${turn}`);
         } else if (isPlayedCardInHand(req.body.player, req.body.bid) === false) { // If bid card is not in players hand, we return an error
             res.status(400).json(`You cannot bid a card you don't have, ${turn}`);
         } else {
-            // We now assume the played bids are valid
-            /* REMEMBER TO ADD "BRIDGERULES" FUNCTION TO CHECK IF THE BID IS VALID <----------- THIS IS DONE HERE */
-            /* if bid is valid, set the bid and whoBid */
-            bidding = req.body.bid;
-            whoBid = turn;
-            passes = 0;
-            setNextTurn();
-            res.status(200).json({ message: `The current bid is ${bidding[1]} of ${bidding[0]} by ${whoBid}. It is now ${turn}'s turn to bid`, turn: turn, bidding: bidding, whoBid: whoBid });
+            // We now assume the played bids are valid. Now we check legality of the bid
+            playedCard = req.body.bid;
+            // If there has been no previous bid, we set the bid and whoBid. No need to check its legality
+            if (bidding[0] === "" && bidding[1] === 0) {
+                bidding = playedCard;
+                whoBid = turn;
+                passes = 0;
+                setNextTurn();
+                res.status(200).json({ message: `The current bid is ${bidding[1]} of ${bidding[0]} by ${whoBid}. It is now ${turn}'s turn to bid`, turn: turn, bidding: bidding, whoBid: whoBid });
+            } else if (checkValidBid(playedCard) === true) {  // This is where we will call the function from bridgeRules.ts
+                bidding = playedCard;                 /* if bid is valid, set the bid and whoBid */
+                whoBid = turn;
+                passes = 0;
+                setNextTurn();
+                res.status(200).json({ message: `The current bid is ${bidding[1]} of ${bidding[0]} by ${whoBid}. It is now ${turn}'s turn to bid`, turn: turn, bidding: bidding, whoBid: whoBid });
+            } else {
+                res.status(400).json({ message: `Something went wrong. Your bid might be invalid, please try again ${turn}.` });
+            }
         }
         } catch (error) {
             errorHandler(error);
